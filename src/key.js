@@ -2,8 +2,7 @@ import { payments, ECPair } from 'bitcoinjs-lib';
 import bip39 from 'bip39';
 import bip32 from 'bip32';
 import { Options } from './options';
-
-// console.log(666666, bip39.generateMnemonic(15/3*32));
+import { Coins } from './wallet';
 
 export class Key {
   constructor(option) {
@@ -16,74 +15,80 @@ export class Key {
       option = new Options();
     }
 
-    if (!option.seed) {
-      option.seed = bip39.mnemonicToSeed(option.mnemonic);
+    if (!option.Seed) {
+      option.Seed = bip39.mnemonicToSeed(option.Mnemonic);
     }
 
-    option.key = bip32.fromSeed(option.seed, option.params);
+    option.key = bip32.fromSeed(option.Seed, option.Params);
     this.init(option);
   }
 
   init(option) {
     this.opt = option;
     this.extended = option.key;
-    this.private = this.extended.privateKey;
-    this.public = this.extended.publicKey;
+    this.Private = this.extended.privateKey;
+    this.Public = this.extended.publicKey;
   }
 
-  getChildKey(option) {
-    if (!option || !option.path) {
+  GetChildKey(option) {
+    if (!option || !option.Path) {
       option = new Options();
     }
 
     option.key = this.extended;
-    console.log(404040, option);
-    option.path.forEach((i) => {
+    option.Path.forEach((i) => {
       option.key = option.key.derive(i);
     })
 
     return new Key(option);
   }
 
-  privateHex() {
-    return this.private.toString('hex');
+  GetWallet(option) {
+    const key = this.GetChildKey(option);
+    const coiner = Coins.get(key.opt.CoinType);
+
+    return new coiner(key);
   }
 
-  privateWIF(compressed) {
-    return ECPair.fromPrivateKey(this.private, {
+  PrivateHex() {
+    return this.Private.toString('hex');
+  }
+
+  PrivateWIF(compressed) {
+    return ECPair.fromPrivateKey(this.Private, {
       compressed,
-      network: this.opt.params,
+      network: this.opt.Params,
     }).toWIF();;
   }
 
-  publicHex() {
-    return this.public.toString('hex');
+  PublicHex() {
+    return this.Public.toString('hex');
   }
 
-  addressBTC() {
+  AddressBTC() {
     return payments.p2pkh({
-      pubkey: this.public,
-      network: this.opt.params,
+      pubkey: this.Public,
+      network: this.opt.Params,
     }).address;
   }
 
-  addressBCH() {
+  AddressBCH() {
     // todo
     return this.addressBTC();
   }
 
-  addressP2WPKH() {
+  AddressP2WPKH() {
     return payments.p2wpkh({
-      pubkey: this.public,
-      network: this.opt.params,
+      pubkey: this.Public,
+      network: this.opt.Params,
     }).address;
   }
 
-  addressP2WPKHInP2SH() {
+  AddressP2WPKHInP2SH() {
     return payments.p2sh({
       redeem: payments.p2wpkh({
-        pubkey: this.public,
-        network: this.opt.params,
+        pubkey: this.Public,
+        network: this.opt.Params,
       })
     }).address;
   }
