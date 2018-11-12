@@ -1,6 +1,5 @@
-import { networks } from 'bitcoinjs-lib';
-import { Enum } from './Enum';
-import { Params } from './Params';
+import { Enum } from './enum';
+import { Params } from './params';
 
 export class Options {
   constructor(option) {
@@ -19,8 +18,10 @@ export class Options {
     this.AddressIndex = 0;
 
     Object.assign(this, option);
+  }
 
-    this.Path = [
+  GetPath() {
+    return [
       this.Purpose,
       this.CoinType,
       this.Account,

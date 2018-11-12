@@ -1,8 +1,11 @@
 import { payments, ECPair } from 'bitcoinjs-lib';
-import bip39 from 'bip39';
-import bip32 from 'bip32';
+import { toCashAddress } from 'bchaddrjs';
+import { publicToAddress, toChecksumAddress, addHexPrefix } from 'ethereumjs-util';
+import { mnemonicToSeed } from 'bip39';
+import { fromSeed } from 'bip32';
 import { Options } from './options';
 import { Coins } from './wallet';
+import { Enum } from './enum';
 
 export class Key {
   constructor(option) {
@@ -16,10 +19,10 @@ export class Key {
     }
 
     if (!option.Seed) {
-      option.Seed = bip39.mnemonicToSeed(option.Mnemonic);
+      option.Seed = mnemonicToSeed(option.Mnemonic);
     }
 
-    option.key = bip32.fromSeed(option.Seed, option.Params);
+    option.key = fromSeed(option.Seed, option.Params);
     this.init(option);
   }
 
@@ -31,12 +34,18 @@ export class Key {
   }
 
   GetChildKey(option) {
-    if (!option || !option.Path) {
+    const newOption = new Options(option);
+
+    if (!option) {
       option = new Options();
     }
 
+    if (Enum.CoinTypes.has(newOption.CoinType)) {
+      newOption.CoinType = Enum.CoinTypes.get(newOption.CoinType);
+    }
+
     option.key = this.extended;
-    option.Path.forEach((i) => {
+    newOption.GetPath().forEach((i) => {
       option.key = option.key.derive(i);
     })
 
@@ -73,8 +82,15 @@ export class Key {
   }
 
   AddressBCH() {
-    // todo
-    return this.addressBTC();
+    return toCashAddress(this.AddressBTC());
+  }
+
+  AddressETH() {
+    const addressBuffer = publicToAddress(this.Public, true);
+    const hexAddress = addressBuffer.toString('hex');
+    const checksumAddress = toChecksumAddress(hexAddress);
+
+    return addHexPrefix(checksumAddress);
   }
 
   AddressP2WPKH() {
